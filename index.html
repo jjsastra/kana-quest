@@ -1,3 +1,4 @@
+<!-- Kana Quest — v1.5 -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -131,6 +132,21 @@
 
   footer{text-align:center; color:#fff; opacity:.8; font-size:12px; margin-top:22px; font-weight:500;}
   @media (max-width:380px){ .kana-big{font-size:108px;} .chiprow{grid-template-columns:1fr 1fr;} .missed-grid{grid-template-columns:repeat(3,1fr);} }
+
+  .modal-overlay{position:fixed; inset:0; background:rgba(54,49,78,.45); display:flex; align-items:center; justify-content:center; padding:20px; z-index:100;}
+  .modal-card{background:var(--cream); border-radius:20px; padding:24px; max-width:380px; width:100%; box-shadow:0 10px 0 var(--shadow);}
+  .modal-card h3{margin:0 0 10px; font-family:'Zen Maru Gothic',sans-serif; font-size:19px;}
+  .modal-result{background:#fff; border-radius:12px; padding:12px 14px; font-weight:700; font-size:14.5px; margin-bottom:16px; text-align:center; color:var(--grape);}
+  .modal-card .field{margin-bottom:13px;}
+  .modal-card label{display:block; font-size:12.5px; font-weight:700; margin-bottom:5px; color:var(--ink);}
+  .modal-card input, .modal-card select{
+    width:100%; padding:11px 13px; border-radius:10px; border:1.5px solid #e0d6c2;
+    font-size:15px; font-family:inherit; background:#fff; color:var(--ink);
+  }
+  .btn-text{display:block; width:100%; text-align:center; background:none; border:none; color:var(--ink); opacity:.6; font-family:inherit; font-size:13.5px; padding:10px; cursor:pointer;}
+  .board-msg{font-size:13.5px; margin-top:8px; text-align:center; font-weight:600; min-height:18px;}
+  .board-msg.ok{color:#2E5039;}
+  .board-msg.err{color:#9C2D21;}
 </style>
 </head>
 <body>
@@ -251,10 +267,48 @@
     </div>
   </section>
 
-  <footer>Made with 💛 for little learners • add to Home Screen for full-screen play</footer>
+  <div class="modal-overlay" id="boardModalOverlay" style="display:none;">
+    <div class="modal-card">
+      <h3>🏆 Post to the Dojo Board</h3>
+      <div class="modal-result" id="modalResultLine"></div>
+      <div class="field"><label for="boardNick">Nickname</label><input id="boardNick" maxlength="18" placeholder="e.g. Sakura, Speedy Sam"></div>
+      <div class="field"><label for="boardGroup">Rank (age group)</label>
+        <select id="boardGroup">
+          <option value="shokyu">🌱 Shokyū (2–11)</option>
+          <option value="chuko">🌿 Chūkō (12–17)</option>
+          <option value="otona">🌳 Otona (18+)</option>
+          <option value="sensei">🎓 Sensei (native speaker)</option>
+        </select>
+      </div>
+      <button class="btn btn-sun" id="boardSubmitBtn" style="width:100%;">Post to the board</button>
+      <button class="btn-text" id="boardCancelBtn">Cancel</button>
+      <div id="boardMsg" class="board-msg"></div>
+    </div>
+  </div>
+
+  <footer>Made with 💛 for little learners • add to Home Screen for full-screen play <span style="opacity:.6;">· v1.5</span></footer>
 </div>
 
-<script>
+<script type="module">
+/* ===================== FIREBASE (Dojo Board leaderboard) ===================== */
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import { getFirestore, collection, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+const firebaseConfig = {
+  apiKey: "AIzaSyBpIQscDsDoqW3-o5UFyRhZbxop5jfNedw",
+  authDomain: "kana-quest-board.firebaseapp.com",
+  projectId: "kana-quest-board",
+  storageBucket: "kana-quest-board.firebasestorage.app",
+  messagingSenderId: "769276736483",
+  appId: "1:769276736483:web:32f2ec508f6d79bd69a6d6"
+};
+const fbApp = initializeApp(firebaseConfig);
+const db = getFirestore(fbApp);
+const ENTRIES_COL = 'kq_entries';
+async function postEntryToBoard(entry){
+  entry.createdAt = serverTimestamp();
+  await addDoc(collection(db, ENTRIES_COL), entry);
+}
+
 /* ===================== KANA DATA ===================== */
 const H = {
   basic:[
@@ -444,30 +498,41 @@ $('#goQuiz').addEventListener('click',function(){ currentMode='quiz'; var full=s
 $('#goFull').addEventListener('click',function(){ currentMode='full'; startChallenge(shuffle(fullDeck())); });
 $('#goTricky').addEventListener('click',startTrickyPractice);
 $('#practiceMissed').addEventListener('click',startTrickyPractice);
-/* Must match SIGN_SECRET in kana-leaderboard.html — this is a casual checksum to deter
-   quick URL-editing, not real security. Anyone determined could still fake an entry. */
-var SIGN_SECRET='kana-quest-dojo-v1';
-function simpleHash(str){
-  var h=0;
-  for(var i=0;i<str.length;i++){ h=((h<<5)-h+str.charCodeAt(i))|0; }
-  return (h>>>0).toString(36);
-}
-function signResult(seconds,score,total){
-  return simpleHash(SIGN_SECRET+'|'+seconds+'|'+score+'|'+total);
-}
-function leaderboardLink(params){
-  var base = LEADERBOARD_URL || 'kana-leaderboard.html';
-  var qs = params ? ('?'+Object.keys(params).map(function(k){return k+'='+encodeURIComponent(params[k]);}).join('&')) : '';
-  return base+qs;
-}
+
+/* ===================== DOJO BOARD (leaderboard) ===================== */
+function leaderboardLink(){ return LEADERBOARD_URL || 'kana-leaderboard.html'; }
 $('#goLeaderboard').addEventListener('click',function(){
   window.open(leaderboardLink(), '_blank');
 });
 $('#goSubmitBoard').addEventListener('click',function(){
   if(!lastRunForBoard) return;
-  var seconds=lastRunForBoard.seconds, score=lastRunForBoard.score, total=lastRunForBoard.total;
-  var params={seconds:seconds, score:score, total:total, sig:signResult(seconds,score,total)};
-  window.open(leaderboardLink(params), '_blank');
+  $('#modalResultLine').textContent = '⏱️ '+fmtTime(lastRunForBoard.seconds*1000)+'  ·  🎯 '+lastRunForBoard.score+' / '+lastRunForBoard.total+' correct';
+  $('#boardNick').value='';
+  $('#boardMsg').textContent=''; $('#boardMsg').className='board-msg';
+  $('#boardSubmitBtn').disabled=false; $('#boardSubmitBtn').textContent='Post to the board';
+  $('#boardModalOverlay').style.display='flex';
+});
+$('#boardCancelBtn').addEventListener('click',function(){ $('#boardModalOverlay').style.display='none'; });
+$('#boardSubmitBtn').addEventListener('click',async function(){
+  var msg=$('#boardMsg'), btn=$('#boardSubmitBtn');
+  var nickname=$('#boardNick').value.trim();
+  var group=$('#boardGroup').value;
+  if(!nickname){ msg.className='board-msg err'; msg.textContent='Please enter a nickname.'; return; }
+  if(!lastRunForBoard){ msg.className='board-msg err'; msg.textContent='No result to post — play a Full List Challenge first.'; return; }
+  btn.disabled=true; btn.textContent='Posting…';
+  try{
+    await postEntryToBoard({
+      nickname:nickname, group:group,
+      seconds:lastRunForBoard.seconds, score:lastRunForBoard.score, total:lastRunForBoard.total,
+      date:new Date().toISOString()
+    });
+    msg.className='board-msg ok'; msg.textContent='🎉 Posted! Check the Dojo Board to see your spot.';
+    btn.textContent='Posted ✓';
+  }catch(err){
+    msg.className='board-msg err'; msg.textContent='Could not post — check your connection and try again.';
+    btn.disabled=false; btn.textContent='Post to the board';
+    console.error('postEntryToBoard failed', err);
+  }
 });
 $('#playAgain').addEventListener('click',function(){
   if(currentMode==='quiz'){ var full=selectedDeck(); startChallenge(shuffle(full).slice(0,Math.min(10,full.length))); }

@@ -1,0 +1,512 @@
+<!-- Kana Quest: Dojo Board — v1.5 -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Kana Quest — Dojo Board</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@500;700;900&family=Zen+Kaku+Gothic+New:wght@400;500;700;900&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper:#F7F1E3;
+    --paper-2:#EFE6D2;
+    --ink:#2B2630;
+    --torii:#C0392B;
+    --torii-dark:#9C2D21;
+    --bamboo:#3F6B4F;
+    --bamboo-dark:#2E5039;
+    --gold:#C9A227;
+    --mist:#8A8499;
+    --line:#DCD0B4;
+    --white:#FFFDF7;
+    --shadow: 0 2px 0 rgba(43,38,48,0.08);
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    font-family:'Zen Kaku Gothic New', system-ui, sans-serif;
+    background:
+      radial-gradient(circle at 12% 8%, rgba(192,57,43,0.05), transparent 40%),
+      radial-gradient(circle at 90% 85%, rgba(63,107,79,0.06), transparent 45%),
+      var(--paper);
+    color:var(--ink);
+    min-height:100vh;
+    -webkit-font-smoothing:antialiased;
+  }
+  .wrap{max-width:760px; margin:0 auto; padding:28px 18px 60px;}
+
+  /* ===== Header ===== */
+  .seal-row{display:flex; align-items:center; gap:14px; margin-bottom:4px;}
+  .seal{
+    width:46px; height:46px; border-radius:50%;
+    background:var(--torii); color:var(--white);
+    display:flex; align-items:center; justify-content:center;
+    font-family:'Zen Maru Gothic', sans-serif; font-weight:900; font-size:20px;
+    box-shadow:var(--shadow);
+    flex-shrink:0;
+  }
+  h1{
+    font-family:'Zen Maru Gothic', sans-serif;
+    font-weight:900;
+    font-size:clamp(26px,5vw,34px);
+    margin:0;
+    letter-spacing:0.01em;
+    line-height:1.1;
+  }
+  .eyebrow{
+    font-size:12.5px; letter-spacing:0.14em; text-transform:uppercase;
+    color:var(--mist); font-weight:700; margin:0 0 6px 2px;
+  }
+  .lede{color:var(--mist); font-size:15px; margin:10px 2px 26px; line-height:1.5; max-width:560px;}
+
+  /* ===== Tabs ===== */
+  .tabs{display:flex; gap:8px; margin-bottom:18px;}
+  .tab{
+    flex:1; text-align:center; padding:13px 10px; border-radius:14px 14px 4px 4px;
+    font-family:'Zen Maru Gothic', sans-serif; font-weight:700; font-size:15px;
+    background:var(--paper-2); color:var(--mist); cursor:pointer; border:none;
+    border-bottom:3px solid transparent;
+    transition:background .15s, color .15s;
+  }
+  .tab.active{background:var(--white); color:var(--ink); border-bottom:3px solid var(--torii); box-shadow:var(--shadow);}
+  .tab .ico{margin-right:6px;}
+
+  /* ===== Age group chips ===== */
+  .chiprow{display:flex; gap:8px; flex-wrap:wrap; margin-bottom:22px;}
+  .chip{
+    padding:9px 15px; border-radius:999px; border:1.5px solid var(--line);
+    background:var(--white); font-weight:700; font-size:13.5px; color:var(--ink);
+    cursor:pointer; transition:all .15s; white-space:nowrap;
+  }
+  .chip .sub{font-weight:500; color:var(--mist); font-size:12px;}
+  .chip.active{background:var(--ink); border-color:var(--ink); color:var(--white);}
+  .chip.active .sub{color:#cfc9d6;}
+
+  /* ===== Panel / board ===== */
+  .board{
+    background:var(--white); border-radius:18px; box-shadow:var(--shadow);
+    border:1px solid var(--line); overflow:hidden;
+  }
+  .board-head{
+    display:flex; justify-content:space-between; align-items:baseline;
+    padding:18px 20px 12px; border-bottom:1px dashed var(--line);
+  }
+  .board-head h2{font-family:'Zen Maru Gothic',sans-serif; font-size:18px; margin:0; font-weight:700;}
+  .board-head .count{font-size:13px; color:var(--mist); font-weight:500;}
+
+  .row{
+    display:grid; grid-template-columns:46px 1fr auto; gap:10px;
+    align-items:center; padding:13px 20px; border-bottom:1px solid var(--paper-2);
+  }
+  .row:last-child{border-bottom:none;}
+  .row:nth-child(even){background:rgba(239,230,210,0.35);}
+  .rank{
+    font-family:'Zen Maru Gothic',sans-serif; font-weight:900; font-size:16px;
+    color:var(--mist); text-align:center;
+  }
+  .rank.r1{color:var(--gold); font-size:22px;}
+  .rank.r2{color:#9aa0a8; font-size:19px;}
+  .rank.r3{color:#b08050; font-size:18px;}
+  .who{display:flex; flex-direction:column; gap:2px; min-width:0;}
+  .name{font-weight:700; font-size:15px; display:flex; align-items:center; gap:6px;}
+  .meta{font-size:12px; color:var(--mist);}
+  .val{font-family:'Zen Maru Gothic',sans-serif; font-weight:900; font-size:18px; text-align:right; white-space:nowrap;}
+  .val .unit{font-size:11px; font-weight:500; color:var(--mist); margin-left:2px;}
+
+  .hanko{
+    width:20px; height:20px; border-radius:50%; background:var(--torii);
+    color:var(--white); font-size:10px; display:flex; align-items:center; justify-content:center;
+    font-family:'Zen Maru Gothic',sans-serif; flex-shrink:0;
+  }
+
+  .empty{padding:44px 20px; text-align:center; color:var(--mist);}
+  .empty .big{font-size:34px; margin-bottom:10px;}
+  .empty .cta{margin-top:14px;}
+
+  /* ===== Submit form ===== */
+  .submit-card{
+    background:var(--white); border-radius:18px; box-shadow:var(--shadow);
+    border:1px solid var(--line); padding:20px; margin-bottom:22px;
+  }
+  .submit-card h2{font-family:'Zen Maru Gothic',sans-serif; font-size:17px; margin:0 0 4px;}
+  .submit-card .hint{font-size:13px; color:var(--mist); margin:0 0 16px;}
+  .field{margin-bottom:14px;}
+  .field label{display:block; font-size:12.5px; font-weight:700; color:var(--ink); margin-bottom:6px; letter-spacing:0.02em;}
+  .field input, .field select{
+    width:100%; padding:11px 13px; border-radius:10px; border:1.5px solid var(--line);
+    font-size:15px; font-family:inherit; background:var(--paper); color:var(--ink);
+  }
+  .field input:focus, .field select:focus{outline:2px solid var(--bamboo); outline-offset:1px; border-color:var(--bamboo);}
+  .prefill-banner{
+    background:rgba(63,107,79,0.08); border:1px solid rgba(63,107,79,0.25);
+    border-radius:12px; padding:11px 14px; font-size:13.5px; margin-bottom:16px;
+    color:var(--bamboo-dark); display:flex; gap:8px; align-items:flex-start;
+  }
+  .btn{
+    width:100%; padding:14px; border-radius:12px; border:none; cursor:pointer;
+    font-family:'Zen Maru Gothic',sans-serif; font-weight:700; font-size:15.5px;
+    background:var(--torii); color:var(--white); box-shadow:var(--shadow);
+    transition:transform .1s, background .15s;
+  }
+  .btn:hover{background:var(--torii-dark);}
+  .btn:active{transform:translateY(1px);}
+  .btn:disabled{background:var(--mist); cursor:not-allowed;}
+  .btn-toggle{
+    background:none; border:1.5px solid var(--line); color:var(--mist);
+    width:auto; padding:9px 16px; font-size:13.5px; box-shadow:none;
+  }
+  .btn-toggle:hover{background:var(--paper-2); color:var(--ink);}
+  .msg{font-size:13.5px; margin-top:10px; text-align:center; font-weight:600;}
+  .msg.ok{color:var(--bamboo-dark);}
+  .msg.err{color:var(--torii-dark);}
+
+  .toprow{display:flex; justify-content:flex-end; margin-bottom:14px;}
+
+  footer{text-align:center; color:var(--mist); font-size:12.5px; margin-top:34px; line-height:1.6;}
+  .skel{padding:20px; text-align:center; color:var(--mist); font-size:14px;}
+
+  @media (max-width:480px){
+    .row{grid-template-columns:36px 1fr auto; padding:12px 14px;}
+    .board-head{padding:16px 16px 10px;}
+  }
+  @media (prefers-reduced-motion: reduce){ *{transition:none !important;} }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="seal-row">
+    <div class="seal">寺</div>
+    <div>
+      <div class="eyebrow">Kana Quest</div>
+      <h1>The Dojo Board</h1>
+    </div>
+  </div>
+  <p class="lede">Fastest times and best scores from the Full List Challenge — across every dojo, from beginners to native speakers. Pick your rank, post your run, see where you land.</p>
+
+  <div class="toprow">
+    <button class="btn-toggle" id="toggleForm">📝 Post a result</button>
+  </div>
+
+  <div id="formZone" style="display:none;"></div>
+
+  <div class="tabs">
+    <button class="tab active" id="tabTimes" data-tab="times"><span class="ico">⏱️</span>Fastest Times</button>
+    <button class="tab" id="tabScores" data-tab="scores"><span class="ico">🎯</span>Best Scores</button>
+  </div>
+
+  <div class="chiprow" id="chipRow"></div>
+
+  <div class="board" id="board">
+    <div class="skel">Loading the board…</div>
+  </div>
+
+  <footer>
+    Times and scores are entered by players and not independently verified — just for friendly bragging rights. 🥋<br>
+    Made with 💛 for little learners <span style="opacity:.6;">· v1.5</span>
+  </footer>
+</div>
+
+<script type="module">
+/* ===================== CONFIG ===================== */
+var GROUPS = [
+  {id:'shokyu', label:'Shokyū', sub:'2–11', emoji:'🌱'},
+  {id:'chuko',  label:'Chūkō',  sub:'12–17', emoji:'🌿'},
+  {id:'otona',  label:'Otona',  sub:'18+', emoji:'🌳'},
+  {id:'sensei', label:'Sensei', sub:'Native speaker', emoji:'🎓'}
+];
+var groupMap = {}; GROUPS.forEach(function(g){ groupMap[g.id]=g; });
+
+/* ===================== STATE ===================== */
+var currentTab = 'times';
+var currentGroup = 'all';
+var cacheTimes = [];
+var cacheScores = [];
+
+/* ===================== HELPERS ===================== */
+function $(s){ return document.querySelector(s); }
+function esc(s){ var d=document.createElement('div'); d.textContent=String(s==null?'':s); return d.innerHTML; }
+function fmtTime(totalSeconds){
+  var s = Math.max(0, Math.round(totalSeconds));
+  var m = Math.floor(s/60); s = s%60;
+  return m+':'+(s<10?'0':'')+s;
+}
+function fmtDate(iso){
+  try{
+    var d = new Date(iso);
+    var months=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    return months[d.getMonth()]+' '+d.getDate();
+  }catch(e){ return ''; }
+}
+function uid(){ return 'e_'+Date.now().toString(36)+'_'+Math.random().toString(36).slice(2,8); }
+
+/* ===================== URL PREFILL (signed result from kana-quest.html) ===================== */
+/* Must match the SECRET used in kana-quest.html's signResult() */
+var SIGN_SECRET = 'kana-quest-dojo-v1';
+function simpleHash(str){
+  var h = 0;
+  for(var i=0;i<str.length;i++){ h = ((h<<5)-h+str.charCodeAt(i))|0; }
+  return (h>>>0).toString(36);
+}
+function getPrefill(){
+  try{
+    var p = new URLSearchParams(window.location.search);
+    var seconds = p.get('seconds'), score = p.get('score'), total = p.get('total'), sig = p.get('sig');
+    if(seconds==null || score==null || total==null || sig==null) return null;
+    var expected = simpleHash(SIGN_SECRET+'|'+seconds+'|'+score+'|'+total);
+    if(expected !== sig) return {invalid:true};
+    return {
+      seconds: +seconds,
+      score: +score,
+      total: +total
+    };
+  }catch(e){ return null; }
+}
+
+/* ===================== FIREBASE / FIRESTORE ===================== */
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import {
+  getFirestore, collection, addDoc, getDocs, query, orderBy, limit, serverTimestamp
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyBpIQscDsDoqW3-o5UFyRhZbxop5jfNedw",
+  authDomain: "kana-quest-board.firebaseapp.com",
+  projectId: "kana-quest-board",
+  storageBucket: "kana-quest-board.firebasestorage.app",
+  messagingSenderId: "769276736483",
+  appId: "1:769276736483:web:32f2ec508f6d79bd69a6d6"
+};
+const fbApp = initializeApp(firebaseConfig);
+const db = getFirestore(fbApp);
+const ENTRIES_COL = 'kq_entries';
+const MAX_FETCH = 500; // pull up to this many most-recent entries, then rank client-side per tab/group
+
+async function loadEntries(){
+  try{
+    var q = query(collection(db, ENTRIES_COL), orderBy('createdAt', 'desc'), limit(MAX_FETCH));
+    var snap = await getDocs(q);
+    var out = [];
+    snap.forEach(function(doc){ out.push(doc.data()); });
+    return out;
+  }catch(e){
+    console.error('loadEntries failed', e);
+    return [];
+  }
+}
+async function saveEntry(entry){
+  entry.createdAt = serverTimestamp();
+  await addDoc(collection(db, ENTRIES_COL), entry);
+}
+
+/* ===================== RENDER: CHIPS ===================== */
+function renderChips(){
+  var row = $('#chipRow');
+  var html = '<button class="chip'+(currentGroup==='all'?' active':'')+'" data-group="all">All ranks</button>';
+  GROUPS.forEach(function(g){
+    html += '<button class="chip'+(currentGroup===g.id?' active':'')+'" data-group="'+g.id+'">'+g.emoji+' '+g.label+' <span class="sub">('+g.sub+')</span></button>';
+  });
+  row.innerHTML = html;
+  row.querySelectorAll('.chip').forEach(function(btn){
+    btn.addEventListener('click', function(){
+      currentGroup = btn.getAttribute('data-group');
+      renderChips();
+      renderBoard();
+    });
+  });
+}
+
+/* ===================== RENDER: BOARD ===================== */
+function rankBadge(i){
+  if(i===0) return '<div class="rank r1">🥇</div>';
+  if(i===1) return '<div class="rank r2">🥈</div>';
+  if(i===2) return '<div class="rank r3">🥉</div>';
+  return '<div class="rank">'+(i+1)+'</div>';
+}
+function renderBoard(){
+  var board = $('#board');
+  var isTimes = currentTab === 'times';
+  var data = (isTimes ? cacheTimes : cacheScores).slice();
+
+  if(currentGroup !== 'all'){
+    data = data.filter(function(e){ return e.group === currentGroup; });
+  }
+
+  if(isTimes){
+    data.sort(function(a,b){ return a.seconds - b.seconds; });
+  } else {
+    data.sort(function(a,b){
+      if(b.score !== a.score) return b.score - a.score;
+      return a.seconds - b.seconds; // tiebreak: faster time wins
+    });
+  }
+
+  var headLabel = isTimes ? '⏱️ Fastest Times' : '🎯 Best Scores';
+  var groupLabel = currentGroup==='all' ? 'All ranks' : (groupMap[currentGroup].emoji+' '+groupMap[currentGroup].label);
+
+  if(data.length === 0){
+    board.innerHTML =
+      '<div class="board-head"><h2>'+headLabel+'</h2><span class="count">'+groupLabel+'</span></div>'+
+      '<div class="empty"><div class="big">🥋</div>No runs posted here yet.<br>Be the first on the board!'+
+      '<div class="cta"><button class="btn-toggle" id="emptyPost" style="display:inline-block; width:auto;">📝 Post a result</button></div></div>';
+    var eb = $('#emptyPost');
+    if(eb) eb.addEventListener('click', function(){ showForm(); });
+    return;
+  }
+
+  var rows = data.map(function(e,i){
+    var valHtml = isTimes
+      ? '<div class="val">'+fmtTime(e.seconds)+'</div>'
+      : '<div class="val">'+e.score+'<span class="unit">/'+e.total+'</span></div>';
+    var g = groupMap[e.group];
+    var hanko = i===0 ? '<span class="hanko">一</span>' : '';
+    var complement = isTimes
+      ? (e.total ? (' · '+e.score+'/'+e.total+' correct') : '')
+      : (e.seconds ? (' · '+fmtTime(e.seconds)) : '');
+    return '<div class="row">'+
+        rankBadge(i)+
+        '<div class="who"><div class="name">'+esc(e.nickname)+' '+hanko+'</div>'+
+          '<div class="meta">'+(g?g.emoji+' '+g.label:'')+' · '+fmtDate(e.date)+complement+
+          '</div>'+
+        '</div>'+
+        valHtml+
+      '</div>';
+  }).join('');
+
+  board.innerHTML =
+    '<div class="board-head"><h2>'+headLabel+'</h2><span class="count">'+data.length+' run'+(data.length===1?'':'s')+' · '+groupLabel+'</span></div>'+
+    rows;
+}
+
+/* ===================== RENDER: FORM ===================== */
+function showForm(prefill){
+  var zone = $('#formZone');
+  zone.style.display = 'block';
+  $('#toggleForm').textContent = '✕ Close';
+
+  var pf = prefill || getPrefill();
+
+  if(!pf){
+    zone.innerHTML =
+      '<div class="submit-card">'+
+        '<h2>Post your result</h2>'+
+        '<p class="hint">Results can only be posted right after finishing a Full List Challenge in Kana Quest — that\'s what keeps the board honest.</p>'+
+        '<div class="prefill-banner" style="background:rgba(192,57,43,0.07); border-color:rgba(192,57,43,0.25); color:var(--torii-dark);">'+
+          '🥋 <div>Go play a <b>Full List Challenge</b> in Kana Quest, then tap <b>"Post my result to the Dojo Board"</b> on the results screen — it\'ll bring you right back here with your run filled in.</div>'+
+        '</div>'+
+      '</div>';
+    return;
+  }
+
+  if(pf.invalid){
+    zone.innerHTML =
+      '<div class="submit-card">'+
+        '<h2>Post your result</h2>'+
+        '<div class="prefill-banner" style="background:rgba(192,57,43,0.07); border-color:rgba(192,57,43,0.25); color:var(--torii-dark);">'+
+          '⚠️ <div>This result link doesn\'t look right and can\'t be posted. Please post directly from a fresh Kana Quest results screen.</div>'+
+        '</div>'+
+      '</div>';
+    return;
+  }
+
+  var ratio = pf.total ? pf.score/pf.total : 0;
+  var resultLine = '⏱️ <b>'+fmtTime(pf.seconds)+'</b> &nbsp;·&nbsp; 🎯 <b>'+pf.score+' / '+pf.total+'</b> correct';
+
+  zone.innerHTML =
+    '<div class="submit-card">'+
+      '<h2>Post your result</h2>'+
+      '<p class="hint">This run is locked in from Kana Quest — just add your nickname and rank.</p>'+
+      '<div class="prefill-banner">🥋 <div>'+resultLine+'</div></div>'+
+      '<div class="field"><label for="fNick">Nickname</label><input id="fNick" maxlength="18" placeholder="e.g. Sakura, Speedy Sam"></div>'+
+      '<div class="field"><label for="fGroup">Rank (age group)</label>'+
+        '<select id="fGroup">'+GROUPS.map(function(g){return '<option value="'+g.id+'">'+g.emoji+' '+g.label+' ('+g.sub+')</option>';}).join('')+'</select>'+
+      '</div>'+
+      '<button class="btn" id="fSubmit">Post to the board</button>'+
+      '<div id="fMsg"></div>'+
+    '</div>';
+
+  $('#fSubmit').addEventListener('click', function(){ onSubmit(pf); });
+}
+
+async function onSubmit(pf){
+  var msg = $('#fMsg');
+  msg.className = 'msg'; msg.textContent = '';
+
+  var nickname = $('#fNick').value.trim();
+  var group = $('#fGroup').value;
+
+  if(!nickname){
+    msg.className='msg err'; msg.textContent='Please enter a nickname.'; return;
+  }
+
+  var btn = $('#fSubmit');
+  btn.disabled = true; btn.textContent = 'Posting…';
+
+  try{
+    var now = new Date().toISOString();
+    await saveEntry({
+      nickname: nickname,
+      group: group,
+      seconds: pf.seconds,
+      score: pf.score,
+      total: pf.total,
+      date: now
+    });
+
+    msg.className='msg ok'; msg.textContent='🎉 Posted! Scroll down to find your spot on the board.';
+    await refreshData();
+    renderBoard();
+    btn.textContent = 'Posted ✓';
+  }catch(err){
+    msg.className='msg err'; msg.textContent = err && err.message ? err.message : 'Could not post — please try again.';
+    btn.textContent = 'Post to the board';
+    btn.disabled = false;
+  }
+}
+
+/* ===================== DATA REFRESH ===================== */
+async function refreshData(){
+  var all = await loadEntries();
+  cacheTimes = all.filter(function(e){ return e.seconds>0; }).map(function(e){
+    return {nickname:e.nickname, group:e.group, seconds:e.seconds, score:e.score, total:e.total, date:e.date};
+  });
+  cacheScores = all.filter(function(e){ return e.total>0; }).map(function(e){
+    return {nickname:e.nickname, group:e.group, score:e.score, total:e.total, seconds:e.seconds||0, date:e.date};
+  });
+}
+
+/* ===================== INIT ===================== */
+function bindTabs(){
+  $('#tabTimes').addEventListener('click', function(){
+    currentTab='times'; $('#tabTimes').classList.add('active'); $('#tabScores').classList.remove('active'); renderBoard();
+  });
+  $('#tabScores').addEventListener('click', function(){
+    currentTab='scores'; $('#tabScores').classList.add('active'); $('#tabTimes').classList.remove('active'); renderBoard();
+  });
+}
+$('#toggleForm').addEventListener('click', function(){
+  var zone = $('#formZone');
+  if(zone.style.display === 'none' || !zone.innerHTML){
+    showForm();
+  } else {
+    zone.style.display = 'none';
+    $('#toggleForm').textContent = '📝 Post a result';
+  }
+});
+
+(async function init(){
+  renderChips();
+  bindTabs();
+  await refreshData();
+  renderBoard();
+
+  var pf = getPrefill();
+  if(pf){
+    showForm(pf);
+    document.getElementById('formZone').scrollIntoView({behavior:'smooth', block:'start'});
+  }
+})();
+</script>
+</body>
+</html>
