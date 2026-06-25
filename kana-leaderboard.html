@@ -1,4 +1,4 @@
-<!-- Kana Quest: Dojo Board — v1.6 -->
+<!-- Kana Quest: Dojo Board — v2.0 -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -73,7 +73,8 @@
   .tab .ico{margin-right:6px;}
 
   /* ===== Age group chips ===== */
-  .chiprow{display:flex; gap:8px; flex-wrap:wrap; margin-bottom:22px;}
+  .chiprow{display:flex; gap:8px; flex-wrap:wrap; margin-bottom:18px;}
+  .filter-label{font-size:12px; letter-spacing:0.1em; text-transform:uppercase; color:var(--mist); font-weight:700; margin:0 2px 8px;}
   .chip{
     padding:9px 15px; border-radius:999px; border:1.5px solid var(--line);
     background:var(--white); font-weight:700; font-size:13.5px; color:var(--ink);
@@ -192,13 +193,16 @@
       <h1>The Dojo Board</h1>
     </div>
   </div>
-  <p class="lede">Fastest times and best scores from the Full List Challenge — across every dojo, from beginners to native speakers. Play a Full List Challenge in Kana Quest, then post your run there to show up here.</p>
+  <p class="lede">Fastest times and best scores across every Kana Quest challenge — pick a challenge and a rank below, then see who's on top. Play a challenge in Kana Quest, then post your run there to show up here.</p>
 
   <div class="tabs">
     <button class="tab active" id="tabTimes" data-tab="times"><span class="ico">⏱️</span>Fastest Times</button>
     <button class="tab" id="tabScores" data-tab="scores"><span class="ico">🎯</span>Best Scores</button>
   </div>
 
+  <div class="filter-label">Challenge</div>
+  <div class="chiprow" id="challengeRow"></div>
+  <div class="filter-label">Rank</div>
   <div class="chiprow" id="chipRow"></div>
 
   <div class="board" id="board">
@@ -209,7 +213,7 @@
 
   <footer>
     Times and scores are entered by players and not independently verified — just for friendly bragging rights. 🥋<br>
-    Made with 💛 for little learners <span style="opacity:.6;">· v1.6</span>
+    Made with 💛 for little learners <span style="opacity:.6;">· v2.0</span>
   </footer>
 </div>
 
@@ -223,12 +227,24 @@ var GROUPS = [
   {id:'sensei', label:'Sensei', sub:'Native speaker', emoji:'🎓'}
 ];
 var groupMap = {}; GROUPS.forEach(function(g){ groupMap[g.id]=g; });
+
+var CHALLENGES = [
+  {id:'hira_basics', label:'Hiragana Basics',   emoji:'🌱'},
+  {id:'kata_basics', label:'Katakana Basics',   emoji:'🌱'},
+  {id:'hira_full',   label:'Hiragana Full List',emoji:'🗺️'},
+  {id:'kata_full',   label:'Katakana Full List',emoji:'🗺️'},
+  {id:'super_mega',  label:'Super Mega Challenge',emoji:'🔥'},
+  {id:'full',        label:'Full List (legacy)',emoji:'🗺️'} // older entries posted before challenges existed
+];
+var challengeMap = {}; CHALLENGES.forEach(function(c){ challengeMap[c.id]=c; });
+
 document.getElementById('backLink').setAttribute('href', APP_URL);
 document.getElementById('backLinkBottom').setAttribute('href', APP_URL);
 
 /* ===================== STATE ===================== */
 var currentTab = 'times';
 var currentGroup = 'all';
+var currentChallenge = 'hira_basics'; // default to the first real challenge so the board isn't an unfiltered mega-mix
 var cacheTimes = [];
 var cacheScores = [];
 
@@ -281,6 +297,23 @@ async function loadEntries(){
 }
 
 /* ===================== RENDER: CHIPS ===================== */
+function renderChallengeChips(){
+  var row = $('#challengeRow');
+  var visibleChallenges = CHALLENGES.filter(function(c){
+    return c.id!=='full' || cacheTimes.concat(cacheScores).some(function(e){ return e.challenge==='full'; });
+  });
+  var html = visibleChallenges.map(function(c){
+    return '<button class="chip'+(currentChallenge===c.id?' active':'')+'" data-challenge="'+c.id+'">'+c.emoji+' '+c.label+'</button>';
+  }).join('');
+  row.innerHTML = html;
+  row.querySelectorAll('.chip').forEach(function(btn){
+    btn.addEventListener('click', function(){
+      currentChallenge = btn.getAttribute('data-challenge');
+      renderChallengeChips();
+      renderBoard();
+    });
+  });
+}
 function renderChips(){
   var row = $('#chipRow');
   var html = '<button class="chip'+(currentGroup==='all'?' active':'')+'" data-group="all">All ranks</button>';
@@ -309,6 +342,7 @@ function renderBoard(){
   var isTimes = currentTab === 'times';
   var data = (isTimes ? cacheTimes : cacheScores).slice();
 
+  data = data.filter(function(e){ return e.challenge === currentChallenge; });
   if(currentGroup !== 'all'){
     data = data.filter(function(e){ return e.group === currentGroup; });
   }
@@ -324,11 +358,12 @@ function renderBoard(){
 
   var headLabel = isTimes ? '⏱️ Fastest Times' : '🎯 Best Scores';
   var groupLabel = currentGroup==='all' ? 'All ranks' : (groupMap[currentGroup].emoji+' '+groupMap[currentGroup].label);
+  var challengeLabel = (challengeMap[currentChallenge]||{}).label || '';
 
   if(data.length === 0){
     board.innerHTML =
       '<div class="board-head"><h2>'+headLabel+'</h2><span class="count">'+groupLabel+'</span></div>'+
-      '<div class="empty"><div class="big">🥋</div>No runs posted here yet.<br>Play a Full List Challenge in Kana Quest to be the first!'+
+      '<div class="empty"><div class="big">🥋</div>No runs posted yet for <b>'+esc(challengeLabel)+'</b>.<br>Play it in Kana Quest to be the first!'+
       '<div class="cta"><a href="'+APP_URL+'" class="btn-toggle" style="display:inline-block; width:auto; text-decoration:none;">🥋 Go to Kana Quest</a></div></div>';
     return;
   }
@@ -361,10 +396,10 @@ function renderBoard(){
 async function refreshData(){
   var all = await loadEntries();
   cacheTimes = all.filter(function(e){ return e.seconds>0; }).map(function(e){
-    return {nickname:e.nickname, group:e.group, seconds:e.seconds, score:e.score, total:e.total, date:e.date};
+    return {nickname:e.nickname, group:e.group, challenge:e.challenge||'full', seconds:e.seconds, score:e.score, total:e.total, date:e.date};
   });
   cacheScores = all.filter(function(e){ return e.total>0; }).map(function(e){
-    return {nickname:e.nickname, group:e.group, score:e.score, total:e.total, seconds:e.seconds||0, date:e.date};
+    return {nickname:e.nickname, group:e.group, challenge:e.challenge||'full', score:e.score, total:e.total, seconds:e.seconds||0, date:e.date};
   });
 }
 
@@ -382,6 +417,7 @@ function bindTabs(){
   renderChips();
   bindTabs();
   await refreshData();
+  renderChallengeChips();
   renderBoard();
 })();
 </script>

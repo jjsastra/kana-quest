@@ -1,4 +1,4 @@
-<!-- Kana Quest — v1.6 -->
+<!-- Kana Quest — v2.0 -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -67,6 +67,12 @@
   .chip .ro{font-size:11px; color:#8a8499; margin-top:3px;}
   .catrow{display:grid; grid-template-columns:1fr 1fr; gap:10px;}
   .catrow .chip .ja{font-size:20px;}
+
+  .pace-toggle{display:grid; grid-template-columns:1fr 1fr; gap:10px; margin:8px 0 12px;}
+  .pace-opt{background:#fff; border:3px solid #eee; border-radius:16px; padding:10px 6px; cursor:pointer; text-align:center; font-weight:700; font-size:13.5px; transition:transform .1s, border-color .15s, background .15s; box-shadow:0 4px 0 var(--shadow);}
+  .pace-opt:active{transform:translateY(3px);}
+  .pace-opt.on{border-color:var(--mint); background:#eafff3;}
+  .challenge-btn{font-size:15px;}
 
   .flashcard{perspective:1200px; width:100%; max-width:320px; height:300px; margin:0 auto 8px; cursor:pointer;}
   .flip-inner{position:relative; width:100%; height:100%; transition:transform .6s cubic-bezier(.4,.2,.2,1); transform-style:preserve-3d;}
@@ -172,14 +178,14 @@
       <h2>Hi, friend! 👋</h2>
       <div class="sub">Pick what you want to learn today</div>
 
-      <div class="label">1. Choose your letters:</div>
+      <div class="label">1. Choose your letters (Flashcards):</div>
       <div class="chiprow">
         <button class="chip on" data-script="hiragana"><span class="ja">あ</span><span class="ro">Hiragana</span></button>
         <button class="chip" data-script="katakana"><span class="ja">ア</span><span class="ro">Katakana</span></button>
         <button class="chip" data-script="both"><span class="ja">あア</span><span class="ro">Both!</span></button>
       </div>
 
-      <div class="label" style="margin-top:14px;">2. Choose your level (Flashcards &amp; Quiz):</div>
+      <div class="label" style="margin-top:14px;">2. Choose your level (Flashcards):</div>
       <div class="catrow">
         <button class="chip on" data-cat="basic"><span class="ja">あ</span><span class="ro">Basics</span></button>
         <button class="chip" data-cat="dakuten"><span class="ja">が</span><span class="ro">Dakuten ゛(ga, za…)</span></button>
@@ -190,9 +196,20 @@
       <div style="height:6px;"></div>
       <div class="btn-stack">
         <button class="btn btn-coral" id="goLearn"><span class="emoji">📇</span> Flashcards (shuffled)</button>
-        <button class="btn btn-mint" id="goQuiz"><span class="emoji">🎮</span> Quick Quiz (10)</button>
-        <button class="btn btn-sky" id="goFull"><span class="emoji">🗺️</span> Full List Challenge — every letter!</button>
         <button class="btn btn-grape" id="goTricky" style="display:none;"><span class="emoji">🩹</span> Practice my tricky letters (<span id="trickyCount">0</span>)</button>
+      </div>
+
+      <div class="label" style="margin-top:18px;">3. Pick a Challenge:</div>
+      <div class="pace-toggle" id="paceToggle">
+        <button class="pace-opt on" data-pace="relaxed">🐢 Relaxed</button>
+        <button class="pace-opt" data-pace="speedy">⚡ Speedy</button>
+      </div>
+      <div class="btn-stack">
+        <button class="btn btn-mint challenge-btn" data-challenge="hira_basics"><span class="emoji">🌱</span> Hiragana Basics</button>
+        <button class="btn btn-mint challenge-btn" data-challenge="kata_basics"><span class="emoji">🌱</span> Katakana Basics</button>
+        <button class="btn btn-sky challenge-btn" data-challenge="hira_full"><span class="emoji">🗺️</span> Hiragana Full List</button>
+        <button class="btn btn-sky challenge-btn" data-challenge="kata_full"><span class="emoji">🗺️</span> Katakana Full List</button>
+        <button class="btn btn-coral challenge-btn" data-challenge="super_mega"><span class="emoji">🔥</span> Super Mega Challenge</button>
       </div>
       <button class="back-link" id="goLeaderboard" style="margin-top:14px; width:100%; text-align:center;">🏆 View the Dojo Board (leaderboard)</button>
     </div>
@@ -287,7 +304,7 @@
     </div>
   </div>
 
-  <footer>Made with 💛 for little learners • add to Home Screen for full-screen play <span style="opacity:.6;">· v1.6</span></footer>
+  <footer>Made with 💛 for little learners • add to Home Screen for full-screen play <span style="opacity:.6;">· v2.0</span></footer>
 </div>
 
 <script type="module">
@@ -396,7 +413,6 @@ function gSet(k,v){ try{localStorage.setItem(k,v);}catch(e){_mem[k]=v;} }
 var store = {
   get stars(){return +(gGet('kq_stars')||0);}, set stars(v){gSet('kq_stars',v);},
   get best(){return +(gGet('kq_best')||0);}, set best(v){gSet('kq_best',v);},
-  get bestFullTime(){ var v=gGet('kq_best_time'); return v?+v:null; }, set bestFullTime(v){gSet('kq_best_time',v);},
   get sound(){return gGet('kq_sound')!=='off';}, set sound(v){gSet('kq_sound',v?'on':'off');},
   get missed(){ try{return JSON.parse(gGet('kq_missed')||'[]');}catch(e){return [];} },
   set missed(arr){ gSet('kq_missed', JSON.stringify(arr.slice(0,200))); }
@@ -425,6 +441,16 @@ function scriptsArr(){ return chosenScript==='both'?['h','k']: chosenScript==='h
 function collect(scripts,cats){ var out=[]; scripts.forEach(function(sc){ var src=sc==='h'?H:K; cats.forEach(function(c){ src[c].forEach(function(it){ out.push({k:it[0],r:it[1],w:it[2]||'',sc:sc,cat:c}); }); }); }); return out; }
 function selectedDeck(){ var cats=Array.from(chosenCats); if(!cats.length) cats=['basic']; return collect(scriptsArr(),cats); }
 function fullDeck(){ return collect(scriptsArr(),ALL_CATS); }
+
+/* ===================== CHALLENGES (5 fixed modes) ===================== */
+var CHALLENGES = {
+  hira_basics:   { label:'Hiragana Basics',    build:function(){ return collect(['h'],['basic']); } },
+  kata_basics:   { label:'Katakana Basics',    build:function(){ return collect(['k'],['basic']); } },
+  hira_full:     { label:'Hiragana Full List', build:function(){ return collect(['h'],ALL_CATS); } },
+  kata_full:     { label:'Katakana Full List', build:function(){ return collect(['k'],ALL_CATS); } },
+  super_mega:    { label:'Super Mega Challenge', build:function(){ return collect(['h','k'],ALL_CATS); } }
+};
+var currentChallenge=null; // key into CHALLENGES, set when a challenge run starts; null for quiz/practice/flashcards
 function updateScoreUI(){ $('#starCount').textContent=store.stars; $('#bestScore').textContent=store.best; }
 function refreshTricky(){ var n=store.missed.length; $('#trickyCount').textContent=n; $('#goTricky').style.display=n>0?'flex':'none'; }
 function addStars(n){ store.stars=store.stars+n; updateScoreUI(); }
@@ -495,8 +521,22 @@ $('#knewIt').addEventListener('click',function(e){ e.stopPropagation(); clearMis
 $('#trickyIt').addEventListener('click',function(e){ e.stopPropagation(); markMissed(deck[learnIndex].k); advanceCard(); });
 
 /* ===================== CHALLENGES ===================== */
-$('#goQuiz').addEventListener('click',function(){ currentMode='quiz'; var full=selectedDeck(); startChallenge(shuffle(full).slice(0,Math.min(10,full.length))); });
-$('#goFull').addEventListener('click',function(){ currentMode='full'; startChallenge(shuffle(fullDeck())); });
+$$('.challenge-btn').forEach(function(btn){
+  btn.addEventListener('click',function(){
+    var key=btn.getAttribute('data-challenge');
+    var ch=CHALLENGES[key];
+    if(!ch) return;
+    currentMode='full'; currentChallenge=key;
+    startChallenge(shuffle(ch.build()));
+  });
+});
+var pace = 'relaxed';
+$$('#paceToggle .pace-opt').forEach(function(btn){
+  btn.addEventListener('click',function(){
+    pace = btn.getAttribute('data-pace');
+    $$('#paceToggle .pace-opt').forEach(function(b){ b.classList.toggle('on', b===btn); });
+  });
+});
 $('#goTricky').addEventListener('click',startTrickyPractice);
 $('#practiceMissed').addEventListener('click',startTrickyPractice);
 
@@ -508,7 +548,8 @@ $('#goLeaderboard').addEventListener('click',function(){
 });
 $('#goSubmitBoard').addEventListener('click',function(){
   if(!lastRunForBoard) return;
-  $('#modalResultLine').textContent = '⏱️ '+fmtTime(lastRunForBoard.seconds*1000)+'  ·  🎯 '+lastRunForBoard.score+' / '+lastRunForBoard.total+' correct';
+  var chLabel = (CHALLENGES[lastRunForBoard.challenge]||{}).label || 'Full List Challenge';
+  $('#modalResultLine').textContent = chLabel+' — ⏱️ '+fmtTime(lastRunForBoard.seconds*1000)+'  ·  🎯 '+lastRunForBoard.score+' / '+lastRunForBoard.total+' correct';
   $('#boardNick').value=sessionNick;
   $('#boardGroup').value=sessionGroup; // remembered for this session only; still requires a real choice if never set
   $('#boardMsg').textContent=''; $('#boardMsg').className='board-msg';
@@ -526,7 +567,7 @@ $('#boardSubmitBtn').addEventListener('click',async function(){
   btn.disabled=true; btn.textContent='Posting…';
   try{
     await postEntryToBoard({
-      nickname:nickname, group:group,
+      nickname:nickname, group:group, challenge:lastRunForBoard.challenge||'full',
       seconds:lastRunForBoard.seconds, score:lastRunForBoard.score, total:lastRunForBoard.total,
       date:new Date().toISOString()
     });
@@ -542,12 +583,14 @@ $('#boardSubmitBtn').addEventListener('click',async function(){
   }
 });
 $('#playAgain').addEventListener('click',function(){
-  if(currentMode==='quiz'){ var full=selectedDeck(); startChallenge(shuffle(full).slice(0,Math.min(10,full.length))); }
-  else if(currentMode==='full'){ startChallenge(shuffle(fullDeck())); }
-  else { startTrickyPractice(); }
+  if(currentMode==='full' && currentChallenge && CHALLENGES[currentChallenge]){
+    startChallenge(shuffle(CHALLENGES[currentChallenge].build()));
+  } else {
+    startTrickyPractice();
+  }
 });
 function startTrickyPractice(){
-  currentMode='practice';
+  currentMode='practice'; currentChallenge=null;
   var items=store.missed.map(function(k){return ALL_BY_KANA[k];}).filter(Boolean);
   if(!items.length){ refreshTricky(); show('home'); return; }
   startChallenge(shuffle(items));
@@ -601,7 +644,8 @@ function checkAnswer(btn,correct){
   }
   $('#quizStreak').textContent=streak>=2?('🔥 '+streak+' in a row!'):'';
   $('#quizBar').style.width=((quizIdx+1)/quizTotal*100)+'%';
-  setTimeout(nextQuiz, correct?1000:1850);
+  var delay = pace==='speedy' ? (correct?400:650) : (correct?1000:1850);
+  setTimeout(nextQuiz, delay);
 }
 function nextQuiz(){ quizIdx++; if(quizIdx>=quizTotal){ endChallenge(); return; } renderQuiz(); }
 function endChallenge(){
@@ -614,16 +658,19 @@ function endChallenge(){
   var ratio=quizTotal?quizScore/quizTotal:0;
   var stars=ratio>=0.9?3:ratio>=0.6?2:ratio>=0.3?1:0;
   $('#endStars').textContent=stars===0?'🌱':Array(stars+1).join('⭐');
-  var titles={quiz:'Quiz done!',full:'Full List done! 🗺️',practice:'Practice done! 🩹'};
-  $('#endTitle').textContent=titles[currentMode]||'Great job!';
+  var titles={practice:'Practice done! 🩹'};
+  $('#endTitle').textContent= (currentMode==='full' && currentChallenge && CHALLENGES[currentChallenge]) ? (CHALLENGES[currentChallenge].label+' done! 🎉') : (titles[currentMode]||'Great job!');
   var msgs={3:"WOW! You're a kana superstar! 🌟",2:'Great work! Keep going! 💪',1:'Good try! Practice makes perfect! 🌈',0:'Every hero starts small — try again! 🌱'};
   $('#endMsg').textContent=msgs[stars];
   if(currentMode==='full'){
-    var isNewBest = store.bestFullTime===null || finalElapsed<store.bestFullTime;
-    if(isNewBest) store.bestFullTime=finalElapsed;
+    var bestKey='kq_best_time_'+(currentChallenge||'full');
+    var prevBest=+(gGet(bestKey)||0)||null;
+    var isNewBest = prevBest===null || finalElapsed<prevBest;
+    var bestToShow = isNewBest ? finalElapsed : prevBest;
+    if(isNewBest) gSet(bestKey, finalElapsed);
     $('#endTime').style.display='block';
-    $('#endTime').textContent='⏱️ Your time: '+fmtTime(finalElapsed)+(isNewBest?'  🏆 New best!':'  (Best: '+fmtTime(store.bestFullTime)+')');
-    lastRunForBoard={seconds:Math.round(finalElapsed/1000), score:quizScore, total:quizTotal};
+    $('#endTime').textContent='⏱️ Your time: '+fmtTime(finalElapsed)+(isNewBest?'  🏆 New best!':'  (Best: '+fmtTime(bestToShow)+')');
+    lastRunForBoard={seconds:Math.round(finalElapsed/1000), score:quizScore, total:quizTotal, challenge:currentChallenge||'full'};
     $('#goSubmitBoard').style.display='flex';
   } else {
     $('#endTime').style.display='none';
