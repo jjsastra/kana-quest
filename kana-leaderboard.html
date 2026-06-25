@@ -1,4 +1,4 @@
-<!-- Kana Quest: Dojo Board — v1.5 -->
+<!-- Kana Quest: Dojo Board — v1.6 -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -163,6 +163,13 @@
 
   .toprow{display:flex; justify-content:flex-end; margin-bottom:14px;}
 
+  .back-link{
+    display:inline-flex; align-items:center; gap:6px; text-decoration:none;
+    color:var(--mist); font-weight:700; font-size:13.5px; margin-bottom:18px;
+    padding:6px 0;
+  }
+  .back-link:hover{color:var(--ink);}
+
   footer{text-align:center; color:var(--mist); font-size:12.5px; margin-top:34px; line-height:1.6;}
   .skel{padding:20px; text-align:center; color:var(--mist); font-size:14px;}
 
@@ -176,6 +183,8 @@
 <body>
 <div class="wrap">
 
+  <a href="index.html" class="back-link" id="backLink">← Back to Kana Quest</a>
+
   <div class="seal-row">
     <div class="seal">寺</div>
     <div>
@@ -183,13 +192,7 @@
       <h1>The Dojo Board</h1>
     </div>
   </div>
-  <p class="lede">Fastest times and best scores from the Full List Challenge — across every dojo, from beginners to native speakers. Pick your rank, post your run, see where you land.</p>
-
-  <div class="toprow">
-    <button class="btn-toggle" id="toggleForm">📝 Post a result</button>
-  </div>
-
-  <div id="formZone" style="display:none;"></div>
+  <p class="lede">Fastest times and best scores from the Full List Challenge — across every dojo, from beginners to native speakers. Play a Full List Challenge in Kana Quest, then post your run there to show up here.</p>
 
   <div class="tabs">
     <button class="tab active" id="tabTimes" data-tab="times"><span class="ico">⏱️</span>Fastest Times</button>
@@ -202,14 +205,17 @@
     <div class="skel">Loading the board…</div>
   </div>
 
+  <a href="index.html" class="back-link" id="backLinkBottom" style="display:block; text-align:center; margin-top:18px;">← Back to Kana Quest</a>
+
   <footer>
     Times and scores are entered by players and not independently verified — just for friendly bragging rights. 🥋<br>
-    Made with 💛 for little learners <span style="opacity:.6;">· v1.5</span>
+    Made with 💛 for little learners <span style="opacity:.6;">· v1.6</span>
   </footer>
 </div>
 
 <script type="module">
 /* ===================== CONFIG ===================== */
+var APP_URL = 'index.html'; // relative path to your Kana Quest app file
 var GROUPS = [
   {id:'shokyu', label:'Shokyū', sub:'2–11', emoji:'🌱'},
   {id:'chuko',  label:'Chūkō',  sub:'12–17', emoji:'🌿'},
@@ -217,6 +223,8 @@ var GROUPS = [
   {id:'sensei', label:'Sensei', sub:'Native speaker', emoji:'🎓'}
 ];
 var groupMap = {}; GROUPS.forEach(function(g){ groupMap[g.id]=g; });
+document.getElementById('backLink').setAttribute('href', APP_URL);
+document.getElementById('backLinkBottom').setAttribute('href', APP_URL);
 
 /* ===================== STATE ===================== */
 var currentTab = 'times';
@@ -239,35 +247,11 @@ function fmtDate(iso){
     return months[d.getMonth()]+' '+d.getDate();
   }catch(e){ return ''; }
 }
-function uid(){ return 'e_'+Date.now().toString(36)+'_'+Math.random().toString(36).slice(2,8); }
-
-/* ===================== URL PREFILL (signed result from kana-quest.html) ===================== */
-/* Must match the SECRET used in kana-quest.html's signResult() */
-var SIGN_SECRET = 'kana-quest-dojo-v1';
-function simpleHash(str){
-  var h = 0;
-  for(var i=0;i<str.length;i++){ h = ((h<<5)-h+str.charCodeAt(i))|0; }
-  return (h>>>0).toString(36);
-}
-function getPrefill(){
-  try{
-    var p = new URLSearchParams(window.location.search);
-    var seconds = p.get('seconds'), score = p.get('score'), total = p.get('total'), sig = p.get('sig');
-    if(seconds==null || score==null || total==null || sig==null) return null;
-    var expected = simpleHash(SIGN_SECRET+'|'+seconds+'|'+score+'|'+total);
-    if(expected !== sig) return {invalid:true};
-    return {
-      seconds: +seconds,
-      score: +score,
-      total: +total
-    };
-  }catch(e){ return null; }
-}
 
 /* ===================== FIREBASE / FIRESTORE ===================== */
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import {
-  getFirestore, collection, addDoc, getDocs, query, orderBy, limit, serverTimestamp
+  getFirestore, collection, getDocs, query, orderBy, limit
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 const firebaseConfig = {
@@ -294,10 +278,6 @@ async function loadEntries(){
     console.error('loadEntries failed', e);
     return [];
   }
-}
-async function saveEntry(entry){
-  entry.createdAt = serverTimestamp();
-  await addDoc(collection(db, ENTRIES_COL), entry);
 }
 
 /* ===================== RENDER: CHIPS ===================== */
@@ -348,10 +328,8 @@ function renderBoard(){
   if(data.length === 0){
     board.innerHTML =
       '<div class="board-head"><h2>'+headLabel+'</h2><span class="count">'+groupLabel+'</span></div>'+
-      '<div class="empty"><div class="big">🥋</div>No runs posted here yet.<br>Be the first on the board!'+
-      '<div class="cta"><button class="btn-toggle" id="emptyPost" style="display:inline-block; width:auto;">📝 Post a result</button></div></div>';
-    var eb = $('#emptyPost');
-    if(eb) eb.addEventListener('click', function(){ showForm(); });
+      '<div class="empty"><div class="big">🥋</div>No runs posted here yet.<br>Play a Full List Challenge in Kana Quest to be the first!'+
+      '<div class="cta"><a href="'+APP_URL+'" class="btn-toggle" style="display:inline-block; width:auto; text-decoration:none;">🥋 Go to Kana Quest</a></div></div>';
     return;
   }
 
@@ -379,92 +357,6 @@ function renderBoard(){
     rows;
 }
 
-/* ===================== RENDER: FORM ===================== */
-function showForm(prefill){
-  var zone = $('#formZone');
-  zone.style.display = 'block';
-  $('#toggleForm').textContent = '✕ Close';
-
-  var pf = prefill || getPrefill();
-
-  if(!pf){
-    zone.innerHTML =
-      '<div class="submit-card">'+
-        '<h2>Post your result</h2>'+
-        '<p class="hint">Results can only be posted right after finishing a Full List Challenge in Kana Quest — that\'s what keeps the board honest.</p>'+
-        '<div class="prefill-banner" style="background:rgba(192,57,43,0.07); border-color:rgba(192,57,43,0.25); color:var(--torii-dark);">'+
-          '🥋 <div>Go play a <b>Full List Challenge</b> in Kana Quest, then tap <b>"Post my result to the Dojo Board"</b> on the results screen — it\'ll bring you right back here with your run filled in.</div>'+
-        '</div>'+
-      '</div>';
-    return;
-  }
-
-  if(pf.invalid){
-    zone.innerHTML =
-      '<div class="submit-card">'+
-        '<h2>Post your result</h2>'+
-        '<div class="prefill-banner" style="background:rgba(192,57,43,0.07); border-color:rgba(192,57,43,0.25); color:var(--torii-dark);">'+
-          '⚠️ <div>This result link doesn\'t look right and can\'t be posted. Please post directly from a fresh Kana Quest results screen.</div>'+
-        '</div>'+
-      '</div>';
-    return;
-  }
-
-  var ratio = pf.total ? pf.score/pf.total : 0;
-  var resultLine = '⏱️ <b>'+fmtTime(pf.seconds)+'</b> &nbsp;·&nbsp; 🎯 <b>'+pf.score+' / '+pf.total+'</b> correct';
-
-  zone.innerHTML =
-    '<div class="submit-card">'+
-      '<h2>Post your result</h2>'+
-      '<p class="hint">This run is locked in from Kana Quest — just add your nickname and rank.</p>'+
-      '<div class="prefill-banner">🥋 <div>'+resultLine+'</div></div>'+
-      '<div class="field"><label for="fNick">Nickname</label><input id="fNick" maxlength="18" placeholder="e.g. Sakura, Speedy Sam"></div>'+
-      '<div class="field"><label for="fGroup">Rank (age group)</label>'+
-        '<select id="fGroup">'+GROUPS.map(function(g){return '<option value="'+g.id+'">'+g.emoji+' '+g.label+' ('+g.sub+')</option>';}).join('')+'</select>'+
-      '</div>'+
-      '<button class="btn" id="fSubmit">Post to the board</button>'+
-      '<div id="fMsg"></div>'+
-    '</div>';
-
-  $('#fSubmit').addEventListener('click', function(){ onSubmit(pf); });
-}
-
-async function onSubmit(pf){
-  var msg = $('#fMsg');
-  msg.className = 'msg'; msg.textContent = '';
-
-  var nickname = $('#fNick').value.trim();
-  var group = $('#fGroup').value;
-
-  if(!nickname){
-    msg.className='msg err'; msg.textContent='Please enter a nickname.'; return;
-  }
-
-  var btn = $('#fSubmit');
-  btn.disabled = true; btn.textContent = 'Posting…';
-
-  try{
-    var now = new Date().toISOString();
-    await saveEntry({
-      nickname: nickname,
-      group: group,
-      seconds: pf.seconds,
-      score: pf.score,
-      total: pf.total,
-      date: now
-    });
-
-    msg.className='msg ok'; msg.textContent='🎉 Posted! Scroll down to find your spot on the board.';
-    await refreshData();
-    renderBoard();
-    btn.textContent = 'Posted ✓';
-  }catch(err){
-    msg.className='msg err'; msg.textContent = err && err.message ? err.message : 'Could not post — please try again.';
-    btn.textContent = 'Post to the board';
-    btn.disabled = false;
-  }
-}
-
 /* ===================== DATA REFRESH ===================== */
 async function refreshData(){
   var all = await loadEntries();
@@ -485,27 +377,12 @@ function bindTabs(){
     currentTab='scores'; $('#tabScores').classList.add('active'); $('#tabTimes').classList.remove('active'); renderBoard();
   });
 }
-$('#toggleForm').addEventListener('click', function(){
-  var zone = $('#formZone');
-  if(zone.style.display === 'none' || !zone.innerHTML){
-    showForm();
-  } else {
-    zone.style.display = 'none';
-    $('#toggleForm').textContent = '📝 Post a result';
-  }
-});
 
 (async function init(){
   renderChips();
   bindTabs();
   await refreshData();
   renderBoard();
-
-  var pf = getPrefill();
-  if(pf){
-    showForm(pf);
-    document.getElementById('formZone').scrollIntoView({behavior:'smooth', block:'start'});
-  }
 })();
 </script>
 </body>

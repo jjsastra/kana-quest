@@ -1,4 +1,4 @@
-<!-- Kana Quest — v1.5 -->
+<!-- Kana Quest — v1.6 -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -274,6 +274,7 @@
       <div class="field"><label for="boardNick">Nickname</label><input id="boardNick" maxlength="18" placeholder="e.g. Sakura, Speedy Sam"></div>
       <div class="field"><label for="boardGroup">Rank (age group)</label>
         <select id="boardGroup">
+          <option value="" disabled selected>Choose your rank…</option>
           <option value="shokyu">🌱 Shokyū (2–11)</option>
           <option value="chuko">🌿 Chūkō (12–17)</option>
           <option value="otona">🌳 Otona (18+)</option>
@@ -286,7 +287,7 @@
     </div>
   </div>
 
-  <footer>Made with 💛 for little learners • add to Home Screen for full-screen play <span style="opacity:.6;">· v1.5</span></footer>
+  <footer>Made with 💛 for little learners • add to Home Screen for full-screen play <span style="opacity:.6;">· v1.6</span></footer>
 </div>
 
 <script type="module">
@@ -501,13 +502,15 @@ $('#practiceMissed').addEventListener('click',startTrickyPractice);
 
 /* ===================== DOJO BOARD (leaderboard) ===================== */
 function leaderboardLink(){ return LEADERBOARD_URL || 'kana-leaderboard.html'; }
+var sessionGroup = '', sessionNick = '';
 $('#goLeaderboard').addEventListener('click',function(){
   window.open(leaderboardLink(), '_blank');
 });
 $('#goSubmitBoard').addEventListener('click',function(){
   if(!lastRunForBoard) return;
   $('#modalResultLine').textContent = '⏱️ '+fmtTime(lastRunForBoard.seconds*1000)+'  ·  🎯 '+lastRunForBoard.score+' / '+lastRunForBoard.total+' correct';
-  $('#boardNick').value='';
+  $('#boardNick').value=sessionNick;
+  $('#boardGroup').value=sessionGroup; // remembered for this session only; still requires a real choice if never set
   $('#boardMsg').textContent=''; $('#boardMsg').className='board-msg';
   $('#boardSubmitBtn').disabled=false; $('#boardSubmitBtn').textContent='Post to the board';
   $('#boardModalOverlay').style.display='flex';
@@ -518,6 +521,7 @@ $('#boardSubmitBtn').addEventListener('click',async function(){
   var nickname=$('#boardNick').value.trim();
   var group=$('#boardGroup').value;
   if(!nickname){ msg.className='board-msg err'; msg.textContent='Please enter a nickname.'; return; }
+  if(!group){ msg.className='board-msg err'; msg.textContent='Please choose your rank (age group).'; return; }
   if(!lastRunForBoard){ msg.className='board-msg err'; msg.textContent='No result to post — play a Full List Challenge first.'; return; }
   btn.disabled=true; btn.textContent='Posting…';
   try{
@@ -526,6 +530,9 @@ $('#boardSubmitBtn').addEventListener('click',async function(){
       seconds:lastRunForBoard.seconds, score:lastRunForBoard.score, total:lastRunForBoard.total,
       date:new Date().toISOString()
     });
+    sessionNick=nickname; sessionGroup=group;
+    lastRunForBoard=null; // this result is now posted — prevent re-submitting the same run again
+    $('#goSubmitBoard').style.display='none';
     msg.className='board-msg ok'; msg.textContent='🎉 Posted! Check the Dojo Board to see your spot.';
     btn.textContent='Posted ✓';
   }catch(err){
